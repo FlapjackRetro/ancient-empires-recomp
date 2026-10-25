@@ -1,0 +1,6 @@
+original/
+build/
+out/
+*.o
+misses.txt
+frames/
