@@ -2191,7 +2191,15 @@ void fn_0E151(CPU *cpu)
     if (cc_a(cpu)) goto L_fn_0E151_000070;   /* ja 0x0070 */
     cpu->bx = (uint16_t)(cpu->ax);           /* mov bx, ax */
     { uint16_t _v = cpu->bx; uint8_t _c = (0x1) & 0x1F; if (_c) { uint16_t _r = (_c >= 16) ? 0 : (uint16_t)(_v << _c); int _cf = (_c <= 16) ? ((_v >> (16 - _c)) & 1) : 0; cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (_cf ? FLAG_CF : 0) | ((((_r >> (16 - 1)) & 1) ^ _cf) ? FLAG_OF : 0); flags_shift16(cpu, _r); cpu->bx = (uint16_t)(_r); } } /* shl bx, 0x1 */
-    recomp_dispatch(cpu, SEG_0000, mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x1E97))); return; /* jmp word cs:[bx+-0x1E97] */
+    { uint16_t _t = mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x1E97)); /* jmp word cs:[bx+-0x1E97] */
+      switch (_t) {
+        case 0xE197: goto L_fn_0E151_000046;
+        case 0xE1B3: goto L_fn_0E151_000062;
+        case 0xE19E: goto L_fn_0E151_00004D;
+        case 0xE1A5: goto L_fn_0E151_000054;
+        case 0xE1AC: goto L_fn_0E151_00005B;
+        default: recomp_dispatch(cpu, SEG_0000, _t); return;
+      } }
     { uint16_t _t = cpu->ax; cpu->ax = (uint16_t)(cpu->di); cpu->di = (uint16_t)(_t); } /* xchg ax, di */
     cpu->cx--; if (cpu->cx != 0 && zf(cpu)) { recomp_dispatch(cpu, 0x1E11, 0xF); return; } /* loopz tail 0x01E11F */ /* loopz 0xFFCE */
     cpu->cx--; if (cpu->cx != 0 && zf(cpu)) { recomp_dispatch(cpu, 0x1E10, 0xC); return; } /* loopz tail 0x01E10C */ /* loopz 0xFFBB */
@@ -2219,26 +2227,31 @@ L_fn_0E151_000025:;
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E262(cpu);                           /* call 0x0111 */
     goto L_fn_0E151_000070;                  /* jmp 0x0070 */
+L_fn_0E151_000046:;
     push16(cpu, cpu->si);                    /* push si */
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E1F2(cpu);                           /* call 0x00A1 */
     cpu->cx = (uint16_t)(pop16(cpu));        /* pop cx */
     goto L_fn_0E151_000070;                  /* jmp 0x0070 */
+L_fn_0E151_00004D:;
     push16(cpu, cpu->si);                    /* push si */
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E27B(cpu);                           /* call 0x012A */
     cpu->cx = (uint16_t)(pop16(cpu));        /* pop cx */
     goto L_fn_0E151_000070;                  /* jmp 0x0070 */
+L_fn_0E151_000054:;
     push16(cpu, cpu->si);                    /* push si */
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E2D6(cpu);                           /* call 0x0185 */
     cpu->cx = (uint16_t)(pop16(cpu));        /* pop cx */
     goto L_fn_0E151_000070;                  /* jmp 0x0070 */
+L_fn_0E151_00005B:;
     push16(cpu, cpu->si);                    /* push si */
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E324(cpu);                           /* call 0x01D3 */
     cpu->cx = (uint16_t)(pop16(cpu));        /* pop cx */
     goto L_fn_0E151_000070;                  /* jmp 0x0070 */
+L_fn_0E151_000062:;
     push16(cpu, cpu->si);                    /* push si */
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_0E372(cpu);                           /* call 0x0221 */

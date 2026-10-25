@@ -55,6 +55,7 @@ typedef struct RtConfig {
     int         frame_every;  /* ...every N presented frames */
     const char *key_script;   /* "t=KEYWORD,t=KEYWORD..." scripted key injection */
     int         trace;
+    const char *wav_path;     /* testing: capture the mixed audio (OPL + speaker) to a 44.1 kHz mono WAV */
     int         adapter;      /* what the game's video detection should find: 5=VGA (default), 1=EGA, 3=Tandy, 0=CGA */
 } RtConfig;
 

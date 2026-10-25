@@ -8,6 +8,7 @@
  */
 #include "runtime.h"
 #include "../platform.h"
+#include "../opl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +79,7 @@ static const char *g_ring[128];
 static unsigned g_ring_n;
 static const char *g_seen[2048];
 static int g_seen_log;
+static const char *recomp_last_fn(void) { const char *a = g_ring[(g_ring_n - 1) & 127], *b = g_ring[(g_ring_n - 2) & 127]; static char buf[64]; snprintf(buf, sizeof buf, "%s<-%s", a ? a : "?", b ? b : "?"); return buf; }
 void recomp_enter(const char *fn)
 {
     g_ring[g_ring_n++ & 127] = fn;
@@ -254,7 +256,42 @@ static void speaker_update(void)
         hz = (int)(1193182u / d);
         if (hz < 20 || hz > 20000) hz = 0;
     }
-    if (hz != g_spk_hz) { g_spk_hz = hz; plat_speaker(hz); }
+    if (hz != g_spk_hz) { g_spk_hz = hz; plat_speaker(hz); if (g_cfg.trace) rt_log("[snd] speaker %d Hz\n", hz); }
+}
+
+/* ---- audio capture (testing aid; --wav) ---- */
+static FILE *g_wav; static uint64_t g_wav_t0, g_wav_n; static double g_wav_ph;
+static void wav_capture(uint64_t us)
+{
+    if (!g_cfg.wav_path) return;
+    if (!g_wav) {
+        g_wav = fopen(g_cfg.wav_path, "wb"); if (!g_wav) { g_cfg.wav_path = NULL; return; }
+        uint8_t h[44] = {0}; fwrite(h, 1, 44, g_wav); g_wav_t0 = us;
+    }
+    uint64_t want = (us - g_wav_t0) * 44100 / 1000000;
+    while (g_wav_n < want) {
+        int n = (int)(want - g_wav_n); if (n > 1024) n = 1024;
+        int32_t acc[1024]; int16_t out[1024];
+        for (int i = 0; i < n; i++) {
+            int32_t v = 0;
+            if (g_spk_hz) { g_wav_ph += (double)g_spk_hz / 44100.0; if (g_wav_ph >= 1.0) g_wav_ph -= 1.0; v = g_wav_ph < 0.5 ? 4000 : -4000; }
+            acc[i] = v;
+        }
+        opl_mix(acc, n, 44100);
+        for (int i = 0; i < n; i++) out[i] = acc[i] > 32767 ? 32767 : acc[i] < -32768 ? -32768 : (int16_t)acc[i];
+        fwrite(out, 2, n, g_wav); g_wav_n += n;
+    }
+}
+static void wav_finish(void)
+{
+    if (!g_wav) return;
+    uint32_t data = (uint32_t)(g_wav_n * 2), riff = data + 36, rate = 44100, brate = 88200, fmt = 16;
+    uint16_t pcm = 1, ch = 1, align = 2, bits = 16;
+    fseek(g_wav, 0, SEEK_SET);
+    fwrite("RIFF", 1, 4, g_wav); fwrite(&riff, 4, 1, g_wav); fwrite("WAVEfmt ", 1, 8, g_wav); fwrite(&fmt, 4, 1, g_wav);
+    fwrite(&pcm, 2, 1, g_wav); fwrite(&ch, 2, 1, g_wav); fwrite(&rate, 4, 1, g_wav); fwrite(&brate, 4, 1, g_wav);
+    fwrite(&align, 2, 1, g_wav); fwrite(&bits, 2, 1, g_wav); fwrite("data", 1, 4, g_wav); fwrite(&data, 4, 1, g_wav);
+    fclose(g_wav); g_wav = NULL;
 }
 
 void rt_speaker(int hz) { g_spk_hz = hz; plat_speaker(hz); }
@@ -351,6 +388,7 @@ static uint32_t g_frames;
 static uint32_t g_last_present_ms;
 static uint32_t g_last_event_ms;
 static uint32_t g_rgba[640 * 400];
+static uint64_t opl_clock(void);
 
 static uint64_t now_us(void) { return plat_ticks_us(); }
 
@@ -405,6 +443,9 @@ void rt_poll(CPU *cpu)
         rt_exit(0);
     }
 
+    opl_poll(opl_clock());
+    wav_capture(us);
+    if (g_cfg.trace) { static int last=-1; int v = mem_read16(cpu, 0x1FA3, 0x1778); if (v != last) { rt_log("[snd] ds:1778 -> %d (cs:ip last fn %s)\n", v, recomp_last_fn()); last = v; } }
     if (ms - g_last_event_ms >= 4) { g_last_event_ms = ms; plat_pump(); }
 
     /* scripted keys */
@@ -873,11 +914,20 @@ void int_handler(CPU *cpu, int vec)
 
 /* ---------------------------------------------------------- ports */
 
+static int g_vga_log, g_opl_log;
+/* The lifted code runs far faster than a 4.77-12 MHz PC, so detection loops that wait for an
+ * OPL timer (e.g. 200 status reads for an 80us timer) would finish before the wall clock
+ * advances.  Every OPL port access therefore also advances a virtual clock by ~1.5 us (the
+ * cost of an ISA I/O cycle); the chip timers run on wall time + that bonus. */
+static uint64_t g_opl_bonus_us; static uint8_t g_opl_addr;
+static uint64_t opl_clock(void) { return plat_ticks_us() + (g_opl_bonus_us * 3 >> 1); }
 uint8_t port_in8(CPU *cpu, uint16_t port)
 {
     uint8_t v;
     if (vga_port_in(port, &v)) { if (port == 0x3DA || port == 0x3BA) rt_poll(cpu); return v; }
     switch (port) {
+    case 0x388: { g_opl_bonus_us++; opl_poll(opl_clock()); uint8_t st = opl_read_status(); if (0) rt_log("[opl] status read -> %02X\n", st); return st; }
+    case 0x389: return 0xFF;
     case 0x60: return g_scan_latch;
     case 0x61: return g_p61;
     case 0x40: case 0x41: case 0x42: return 0;
@@ -887,7 +937,7 @@ uint8_t port_in8(CPU *cpu, uint16_t port)
     }
 }
 
-static int g_vga_log;
+
 void port_out8(CPU *cpu, uint16_t port, uint8_t val)
 {
     (void)cpu;
@@ -903,8 +953,12 @@ void port_out8(CPU *cpu, uint16_t port, uint8_t val)
         if (acc == 0) break;                                   /* latch command */
         g_pit_mode_lohi[ch] = (uint8_t)acc; g_pit_phase[ch] = 0;
         break; }
+    case 0x388: g_opl_bonus_us++; g_opl_addr = val; opl_write(0, val); break;
+    case 0x389: g_opl_bonus_us++; opl_write(1, val); if (g_cfg.trace && g_opl_log++ < 3000) rt_log("[opl] r%02X=%02X\n", g_opl_addr, val); break;
     case 0x61: g_p61 = val; speaker_update(); break;
-    default: break;
+    default:
+        if (g_cfg.trace) { static uint8_t seen[65536 / 8]; if (!(seen[port >> 3] & (1 << (port & 7)))) { seen[port >> 3] |= (uint8_t)(1 << (port & 7)); rt_log("[port] first write to unhandled port %03X <- %02X\n", port, val); } }
+        break;
     }
 }
 
@@ -1036,6 +1090,7 @@ int rt_boot(const RtConfig *cfg)
         cpu->mem[0xFFFFE] = 0xFF; cpu->mem[0xFC000] = 0x21;
     }
     vga_init(cpu);
+    opl_init();
 
     cpu->ds = cpu->es = RT_PSP_SEG;
     cpu->cs = RT_LOAD_SEG;
@@ -1062,7 +1117,9 @@ void rt_exit(int code)
 {
     if (g_exited) exit(code);
     g_exited = 1;
+    wav_finish();
     for (int i = 5; i < MAXFH; i++) if (g_fh[i].used) { fclose(g_fh[i].f); g_fh[i].used = 0; }
+    if (g_cfg.trace) rt_log("[snd] ds:1778 sound driver = %d, adapter byte = %d\n", mem_read16(&g_cpu, 0x1FA3, 0x1778), mem_read8(&g_cpu, 0x1FA3, 0xBFCD));
     if (g_nmiss) rt_log("[rt] %d dispatch misses -> misses.txt\n", g_nmiss);
     plat_shutdown();
     exit(code);

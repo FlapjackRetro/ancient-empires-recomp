@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
-project(empires C)
+project(empires C CXX)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 11)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
@@ -9,7 +10,8 @@ find_package(SDL2 REQUIRED)
 
 file(GLOB GEN_SRC CONFIGURE_DEPENDS src/recomp/gen/*.c)
 add_executable(empires
-  src/main.c src/platform_sdl.c
+  src/main.c src/platform_sdl.c src/opl.cpp
+  third_party/ymfm/ymfm_opl.cpp third_party/ymfm/ymfm_adpcm.cpp third_party/ymfm/ymfm_pcm.cpp
   src/recomp/runtime.c src/recomp/vga.c src/recomp/cpu.c
   ${GEN_SRC})
 option(EMPIRES_TRACE "Record a ring of entered functions and dump it on a crash" OFF)

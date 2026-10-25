@@ -3,3 +3,6 @@ build/
 out/
 *.o
 frames/
+code_orig.bin
+code_runtime.bin
+*.bak

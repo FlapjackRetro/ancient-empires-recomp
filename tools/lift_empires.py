@@ -59,6 +59,7 @@ def jump_tables(data, insns, cs, offs):
         if o.base != 'bx' or o.seg != 'cs':
             continue
         bound = bx_imm = cx_imm = None
+        odisp = o.disp & 0xFFFF            # displacements print signed; wrap to the 16-bit offset
         for j in insns[max(0, idx - 10):idx]:
             if not (j.op1 and j.op1.type == OpType.REG16 and j.op2
                     and j.op2.type in (OpType.IMM8, OpType.IMM16)):
@@ -70,10 +71,10 @@ def jump_tables(data, insns, cs, offs):
                 bx_imm = j.op2.disp
             elif j.mnemonic == 'mov' and reg == 'cx':
                 cx_imm = j.op2.disp
-        if bx_imm is not None and cx_imm and o.disp == cx_imm * 2:
-            bound, start = cx_imm, base + bx_imm + o.disp
+        if bx_imm is not None and cx_imm and odisp == cx_imm * 2:
+            bound, start = cx_imm, base + bx_imm + odisp
         else:
-            start = base + o.disp
+            start = base + odisp
         arms, tbl = [], start
         for k in range(bound if bound else 256):
             a = tbl + k * 2 + HDR
@@ -90,7 +91,7 @@ def jump_tables(data, insns, cs, offs):
             # so `cmp bx, N` bounds N/2+1 words. Stop at the first word that is
             # not an instruction boundary of this function.
             words = (bound - 1) // 2 + 1 if bound else 64
-            arms2, tbl2 = [], base + o.disp
+            arms2, tbl2 = [], base + odisp
             for k in range(words):
                 a = tbl2 + k * 2 + HDR
                 if a + 2 > len(data):

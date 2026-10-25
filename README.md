@@ -48,7 +48,8 @@ Testing options: `--headless`, `--max-seconds`, `--frame-dir`, `--frame-every`,
 | CPU/memory model | `src/recomp/cpu.[ch]` (from pcrecomp) |
 | DOS / BIOS / PIT / keyboard | `src/recomp/runtime.c` |
 | EGA/VGA (planar, latches, write modes 0–3, DAC, CRTC, mode 13h/0Dh/0Eh/text) | `src/recomp/vga.c` |
-| Window, input, speaker audio | `src/platform_sdl.c` |
+| Window, input, audio output (PC speaker square wave + OPL2 mixed) | `src/platform_sdl.c` |
+| AdLib / Sound Blaster FM (YM3812) on ports 0x388/0x389 | `src/opl.cpp` wrapping [ymfm](https://github.com/aaronsgiles/ymfm) (BSD-3, `third_party/ymfm/`) |
 
 Two things about this particular game worth knowing:
 
@@ -63,6 +64,16 @@ Two things about this particular game worth knowing:
   return with C `return`. The one place the C startup code reads its own return
   address (`jmp cs:[0xE656]`) is patched in `tools/lift_empires.py`.
 
+### Audio
+
+The game detects an AdLib card by timing the YM3812's timers, then plays music
+through it; otherwise it falls back to the PC speaker. Both are emulated and mixed:
+the speaker from port 0x61 + PIT channel 2, the FM chip with ymfm. The chip timers
+run on wall-clock time plus a small per-port-access bonus, because the recompiled
+code reaches the timer-detection loop far faster than a real 286 would and would
+otherwise conclude there is no card. `--wav out.wav` captures the mixed audio
+without a sound device (handy for headless testing).
+
 ### Regenerating the C
 
 ```
@@ -75,7 +86,7 @@ decoder, lifter and CPU runtime this project is built on.
 
 ## Status
 
-Boots, shows the title/intro, reads the player list, accepts keyboard input,
+Boots, shows the title/intro, plays AdLib music, reads the player list, accepts keyboard input,
 runs the sign-in flow. Gameplay coverage is being widened; please report
 screens that look wrong.
 

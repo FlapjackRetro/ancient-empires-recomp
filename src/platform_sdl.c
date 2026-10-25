@@ -1,5 +1,6 @@
 /* platform_sdl.c - SDL2 window, keyboard, PC-speaker audio, clocks. */
 #include "platform.h"
+#include "opl.h"
 #include "recomp/runtime.h"
 #include <SDL.h>
 #include <stdio.h>
@@ -23,11 +24,18 @@ static void audio_cb(void *ud, Uint8 *stream, int len)
 {
     (void)ud;
     int16_t *o = (int16_t *)stream; int n = len / 2; int hz = g_hz;
+    int32_t acc[2048];
+    if (n > 2048) n = 2048;
     for (int i = 0; i < n; i++) {
-        if (!hz) { o[i] = 0; g_phase = 0; continue; }
-        g_phase += (double)hz / g_aud_rate; if (g_phase >= 1.0) g_phase -= 1.0;
-        o[i] = (g_phase < 0.5) ? 5000 : -5000;
+        int32_t v = 0;
+        if (hz) {
+            g_phase += (double)hz / g_aud_rate; if (g_phase >= 1.0) g_phase -= 1.0;
+            v = (g_phase < 0.5) ? 4000 : -4000;
+        } else g_phase = 0;
+        acc[i] = v;
     }
+    opl_mix(acc, n, g_aud_rate);
+    for (int i = 0; i < n; i++) { int32_t v = acc[i]; o[i] = v > 32767 ? 32767 : v < -32768 ? -32768 : (int16_t)v; }
 }
 
 int plat_init(int headless, int scale, int fullscreen)

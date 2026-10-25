@@ -2016,10 +2016,16 @@ L_fn_0813A_0000CA:;
     if (cc_a(cpu)) goto L_fn_0813A_000127;   /* ja 0x0127 */
     cpu->bx = (uint16_t)(cpu->ax);           /* mov bx, ax */
     { uint16_t _v = cpu->bx; uint8_t _c = (0x1) & 0x1F; if (_c) { uint16_t _r = (_c >= 16) ? 0 : (uint16_t)(_v << _c); int _cf = (_c <= 16) ? ((_v >> (16 - _c)) & 1) : 0; cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (_cf ? FLAG_CF : 0) | ((((_r >> (16 - 1)) & 1) ^ _cf) ? FLAG_OF : 0); flags_shift16(cpu, _r); cpu->bx = (uint16_t)(_r); } } /* shl bx, 0x1 */
-    recomp_dispatch(cpu, SEG_0000, mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7DE5))); return; /* jmp word cs:[bx+-0x7DE5] */
+    { uint16_t _t = mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7DE5)); /* jmp word cs:[bx+-0x7DE5] */
+      switch (_t) {
+        case 0x8241: goto L_fn_0813A_000107;
+        case 0x8223: goto L_fn_0813A_0000E9;
+        default: recomp_dispatch(cpu, SEG_0000, _t); return;
+      } }
     { int _cf = cf(cpu); cpu->cx = (uint16_t)(flags_add16(cpu, cpu->cx, 1)); if (_cf) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF; } /* inc cx */
     { uint8_t _r = mem_read8(cpu, cpu->ss, (uint16_t)(cpu->bp + cpu->di)) & 0x82; flags_logic8(cpu, _r); mem_write8(cpu, cpu->ss, (uint16_t)(cpu->bp + cpu->di), (uint8_t)(_r)); } /* and byte ss:[bp+di], 0x82 */
     { uint16_t _r = cpu->ax & mem_read16(cpu, cpu->ss, (uint16_t)(cpu->bp + cpu->si - 0x7DDD)); flags_logic16(cpu, _r); cpu->ax = (uint16_t)(_r); } /* and ax, word ss:[bp+si+-0x7DDD] */
+L_fn_0813A_0000E9:;
     push16(cpu, cpu->ds);                    /* push ds */
     push16(cpu, mem_read16(cpu, cpu->ds, 0xC114)); /* push word ds:[0xC114] */
     push16(cpu, 0xFFFF);                     /* near call return addr */
@@ -2035,6 +2041,7 @@ L_fn_0813A_0000CA:;
     { int32_t _n = (int32_t)(((uint32_t)cpu->dx << 16) | cpu->ax); int16_t _d = (int16_t)cpu->bx; long long _q = _d ? (long long)_n / _d : 0; if (_d && _q >= -32768 && _q <= 32767) { cpu->ax = (uint16_t)(int16_t)_q; cpu->dx = (uint16_t)(int16_t)((long long)_n % _d); } else { cpu->cs = SEG_0000; cpu->ip = 0x00FE; recomp_div0("idiv16"); } } /* idiv bx */
     cpu->ax = (uint16_t)(flags_add16(cpu, cpu->ax, mem_read16(cpu, cpu->ds, 0xC11E))); /* add ax, word ds:[0xC11E] */
     mem_write16(cpu, cpu->ds, 0xC12E, (uint16_t)(cpu->ax)); /* mov word ds:[0xC12E], ax */
+L_fn_0813A_000107:;
     push16(cpu, cpu->ds);                    /* push ds */
     push16(cpu, mem_read16(cpu, cpu->ds, 0xC112)); /* push word ds:[0xC112] */
     push16(cpu, 0xFFFF);                     /* near call return addr */
@@ -2599,7 +2606,11 @@ L_fn_08480_0001E1:;
     if (cc_a(cpu)) goto L_fn_08480_00021F;   /* ja 0x021F */
     cpu->bx = (uint16_t)(cpu->ax);           /* mov bx, ax */
     { uint16_t _v = cpu->bx; uint8_t _c = (0x1) & 0x1F; if (_c) { uint16_t _r = (_c >= 16) ? 0 : (uint16_t)(_v << _c); int _cf = (_c <= 16) ? ((_v >> (16 - _c)) & 1) : 0; cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (_cf ? FLAG_CF : 0) | ((((_r >> (16 - 1)) & 1) ^ _cf) ? FLAG_OF : 0); flags_shift16(cpu, _r); cpu->bx = (uint16_t)(_r); } } /* shl bx, 0x1 */
-    recomp_dispatch(cpu, SEG_0000, mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7988))); return; /* jmp word cs:[bx+-0x7988] */
+    { uint16_t _t = mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7988)); /* jmp word cs:[bx+-0x7988] */
+      switch (_t) {
+        case 0x8688: goto L_fn_08480_000208;
+        default: recomp_dispatch(cpu, SEG_0000, _t); return;
+      } }
     mem_write8(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x7980), (uint8_t)(cpu->al)); /* mov byte ss:[bp+-0x7980], al */
     mem_write8(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x7980), (uint8_t)(flags_add8(cpu, mem_read8(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x7980)), 0xB8))); /* add byte ss:[bp+-0x7980], 0xB8 */
     mem_write16(cpu, cpu->ds, (uint16_t)(cpu->bx + cpu->si), (uint16_t)(flags_add16(cpu, mem_read16(cpu, cpu->ds, (uint16_t)(cpu->bx + cpu->si)), cpu->ax))); /* add word ds:[bx+si], ax */
@@ -2607,6 +2618,7 @@ L_fn_08480_0001E1:;
     push16(cpu, 0xFFFF);                     /* near call return addr */
     fn_08267(cpu);                           /* call 0xFDE7 */
     cpu->cx = (uint16_t)(pop16(cpu));        /* pop cx */
+L_fn_08480_000208:;
     { uint16_t _r = cpu->ax ^ cpu->ax; flags_logic16(cpu, _r); cpu->ax = (uint16_t)(_r); } /* xor ax, ax */
     push16(cpu, cpu->ax);                    /* push ax */
     push16(cpu, 0xFFFF);                     /* near call return addr */
@@ -3054,13 +3066,22 @@ L_fn_0880A_0001B0:;
     if (cc_a(cpu)) goto L_fn_0880A_0001E7;   /* ja 0x01E7 */
     cpu->bx = (uint16_t)(cpu->ax);           /* mov bx, ax */
     { uint16_t _v = cpu->bx; uint8_t _c = (0x1) & 0x1F; if (_c) { uint16_t _r = (_c >= 16) ? 0 : (uint16_t)(_v << _c); int _cf = (_c <= 16) ? ((_v >> (16 - _c)) & 1) : 0; cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (_cf ? FLAG_CF : 0) | ((((_r >> (16 - 1)) & 1) ^ _cf) ? FLAG_OF : 0); flags_shift16(cpu, _r); cpu->bx = (uint16_t)(_r); } } /* shl bx, 0x1 */
-    recomp_dispatch(cpu, SEG_0000, mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7635))); return; /* jmp word cs:[bx+-0x7635] */
+    { uint16_t _t = mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x7635)); /* jmp word cs:[bx+-0x7635] */
+      switch (_t) {
+        case 0x89D3: goto L_fn_0880A_0001C9;
+        case 0x89D8: goto L_fn_0880A_0001CE;
+        case 0x89E2: goto L_fn_0880A_0001D8;
+        case 0x89E5: goto L_fn_0880A_0001DB;
+        default: recomp_dispatch(cpu, SEG_0000, _t); return;
+      } }
     { uint16_t _v = (uint16_t)mem_read16(cpu, cpu->ds, (uint16_t)(cpu->bx + cpu->di - 0x7628)); uint8_t _n = (cpu->cl) & 0x1F; if (_n) { uint8_t _c = _n % 16; uint16_t _r = (_c ? (uint16_t)((_v >> _c) | (_v << (16 - _c))) : _v); cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (((_r >> (16 - 1)) & 1) ? FLAG_CF : 0) | ((((_r >> (16 - 1)) ^ (_r >> (16 - 2))) & 1) ? FLAG_OF : 0); mem_write16(cpu, cpu->ds, (uint16_t)(cpu->bx + cpu->di - 0x7628), (uint16_t)(_r)); } } /* ror word ds:[bx+di+-0x7628], cl */
     RECOMP_TICK(cpu);
     cpu->cx--; if (cpu->cx != 0) goto L_fn_0880A_000150; /* loop 0x0150 */
     cpu->ax = (uint16_t)(port_in16(cpu, 0x89)); /* in ax, 0x89 */
+L_fn_0880A_0001C9:;
     cpu->si = (uint16_t)(0xFFFF);            /* mov si, 0xFFFF */
     goto L_fn_0880A_0001E7;                  /* jmp 0x01E7 */
+L_fn_0880A_0001CE:;
     { uint16_t _r = cpu->si | cpu->si; flags_logic16(cpu, _r); cpu->si = (uint16_t)(_r); } /* or si, si */
     if (cc_ne(cpu)) goto L_fn_0880A_0001D5;  /* jne 0x01D5 */
     { int _cf = cf(cpu); cpu->si = (uint16_t)(flags_add16(cpu, cpu->si, 1)); if (_cf) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF; } /* inc si */
@@ -3069,8 +3090,10 @@ L_fn_0880A_0001D5:;
     { int _cf = cf(cpu); cpu->si = (uint16_t)(flags_sub16(cpu, cpu->si, 1)); if (_cf) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF; } /* dec si */
 L_fn_0880A_0001D6:;
     goto L_fn_0880A_0001E7;                  /* jmp 0x01E7 */
+L_fn_0880A_0001D8:;
     { int _cf = cf(cpu); cpu->si = (uint16_t)(flags_add16(cpu, cpu->si, 1)); if (_cf) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF; } /* inc si */
     goto L_fn_0880A_0001E7;                  /* jmp 0x01E7 */
+L_fn_0880A_0001DB:;
     { uint16_t _o = mem_read16(cpu, cpu->ss, (uint16_t)(cpu->bp + 0x4)); uint16_t _s = mem_read16(cpu, cpu->ss, (uint16_t)((uint16_t)(cpu->bp + 0x4) + 2)); cpu->bx = _o; cpu->es = _s; } /* les bx, word ss:[bp+0x4] */
     cpu->al = (uint8_t)(mem_read8(cpu, cpu->es, (uint16_t)(cpu->bx + 0x9))); /* mov al, byte es:[bx+0x9] */
     cpu->ax = (uint16_t)(int16_t)(int8_t)cpu->al; /* cbw */
@@ -4832,9 +4855,17 @@ void fn_0969D(CPU *cpu)
 L_fn_0969D_000019:;
     cpu->bx = (uint16_t)(cpu->ax);           /* mov bx, ax */
     { uint16_t _v = cpu->bx; uint8_t _c = (0x1) & 0x1F; if (_c) { uint16_t _r = (_c >= 16) ? 0 : (uint16_t)(_v << _c); int _cf = (_c <= 16) ? ((_v >> (16 - _c)) & 1) : 0; cpu->flags = (cpu->flags & ~(FLAG_CF | FLAG_OF)) | (_cf ? FLAG_CF : 0) | ((((_r >> (16 - 1)) & 1) ^ _cf) ? FLAG_OF : 0); flags_shift16(cpu, _r); cpu->bx = (uint16_t)(_r); } } /* shl bx, 0x1 */
-    recomp_dispatch(cpu, SEG_0000, mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x6941))); return; /* jmp word cs:[bx+-0x6941] */
+    { uint16_t _t = mem_read16(cpu, SEG_0000, (uint16_t)(cpu->bx - 0x6941)); /* jmp word cs:[bx+-0x6941] */
+      switch (_t) {
+        case 0x96C7: goto L_fn_0969D_00002A;
+        case 0x9726: goto L_fn_0969D_000089;
+        case 0x9785: goto L_fn_0969D_0000E8;
+        case 0x97E3: goto L_fn_0969D_000146;
+        default: recomp_dispatch(cpu, SEG_0000, _t); return;
+      } }
     mem_write16(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x68DA), (uint16_t)(0x9785)); /* mov word ss:[bp+-0x68DA], 0x9785 */
     if (cpu->cx == 0) { recomp_dispatch(cpu, 0x1965, 0xE); return; } /* jcxz tail 0x01965E */ /* jcxz 0xFFC1 */
+L_fn_0969D_00002A:;
     { uint16_t _r = cpu->si ^ cpu->si; flags_logic16(cpu, _r); cpu->si = (uint16_t)(_r); } /* xor si, si */
     mem_write16(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x2), (uint16_t)(0x0)); /* mov word ss:[bp+-0x2], 0x0 */
     goto L_fn_0969D_000081;                  /* jmp 0x0081 */
@@ -4883,6 +4914,7 @@ L_fn_0969D_000081:;
     RECOMP_TICK(cpu);
     if (cc_l(cpu)) goto L_fn_0969D_000033;   /* jl 0x0033 */
     goto L_fn_0969D_0001A4;                  /* jmp 0x01A4 */
+L_fn_0969D_000089:;
     { uint16_t _r = cpu->si ^ cpu->si; flags_logic16(cpu, _r); cpu->si = (uint16_t)(_r); } /* xor si, si */
     mem_write16(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x2), (uint16_t)(0x0)); /* mov word ss:[bp+-0x2], 0x0 */
     goto L_fn_0969D_0000E0;                  /* jmp 0x00E0 */
@@ -4931,6 +4963,7 @@ L_fn_0969D_0000E0:;
     RECOMP_TICK(cpu);
     if (cc_l(cpu)) goto L_fn_0969D_000092;   /* jl 0x0092 */
     goto L_fn_0969D_0001A4;                  /* jmp 0x01A4 */
+L_fn_0969D_0000E8:;
     cpu->si = (uint16_t)(0x3);               /* mov si, 0x3 */
     mem_write16(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x2), (uint16_t)(0x0)); /* mov word ss:[bp+-0x2], 0x0 */
     goto L_fn_0969D_000140;                  /* jmp 0x0140 */
@@ -4979,6 +5012,7 @@ L_fn_0969D_000140:;
     RECOMP_TICK(cpu);
     if (cc_ge(cpu)) goto L_fn_0969D_0000F2;  /* jge 0x00F2 */
     goto L_fn_0969D_0001A4;                  /* jmp 0x01A4 */
+L_fn_0969D_000146:;
     cpu->si = (uint16_t)(0x3);               /* mov si, 0x3 */
     mem_write16(cpu, cpu->ss, (uint16_t)(cpu->bp - 0x2), (uint16_t)(0x0)); /* mov word ss:[bp+-0x2], 0x0 */
     goto L_fn_0969D_00019E;                  /* jmp 0x019E */

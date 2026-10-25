@@ -20,6 +20,7 @@ static void usage(const char *a0)
            "  --frame-dir <dir>    write PPM screenshots (testing)\n"
            "  --frame-every <n>    ...every n presented frames (default 30)\n"
            "  --keys <script>      scripted keys, e.g. 2=ENTER,4=SPACE (testing)\n"
+           "  --wav <file>         capture the game audio to a WAV file (testing)\n"
            "  --adapter <type>     video hardware the game detects: vga (default), ega, tandy, cga\n"
            "  --trace              log DOS file activity and unhandled services\n", a0);
 }
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
         else if (!strcmp(a, "--frame-every")) c.frame_every = atoi(NEXT());
         else if (!strcmp(a, "--keys")) c.key_script = NEXT();
         else if (!strcmp(a, "--trace")) c.trace = 1;
+        else if (!strcmp(a, "--wav")) c.wav_path = NEXT();
         else if (!strcmp(a, "--adapter")) { const char *v = NEXT();
             c.adapter = !strcmp(v, "vga") ? 5 : !strcmp(v, "ega") ? 1 : !strcmp(v, "tandy") ? 3 : !strcmp(v, "cga") ? 0 : atoi(v); }
         else { usage(argv[0]); return !strcmp(a, "--help") ? 0 : 2; }
